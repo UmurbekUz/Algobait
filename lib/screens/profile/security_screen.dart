@@ -4,6 +4,7 @@ import 'package:algobait/screens/profile/security/change_password_screen.dart';
 import 'package:algobait/screens/profile/security/change_email_screen.dart';
 import 'package:algobait/screens/profile/security/link_phone_screen.dart';
 import 'package:algobait/screens/profile/security/biometric_auth_screen.dart';
+import 'package:algobait/screens/auth/set_passcode_screen.dart';
 
 class SecurityScreen extends StatelessWidget {
   const SecurityScreen({super.key});
@@ -57,6 +58,13 @@ class SecurityScreen extends StatelessWidget {
             title: 'Биометрическая аутентификация',
             onTap: () {
                Navigator.push(context, MaterialPageRoute(builder: (context) => const BiometricAuthScreen()));
+            },
+          ),
+          _buildSecurityOption(
+            context,
+            title: 'Изменить PIN-код',
+            onTap: () {
+               Navigator.push(context, MaterialPageRoute(builder: (context) => const SetPasscodeScreen()));
             },
           ),
         ],

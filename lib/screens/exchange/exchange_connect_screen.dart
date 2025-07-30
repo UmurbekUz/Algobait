@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'bybit_add_screen.dart';
+import 'exchange_info_screen.dart';
 
 class ExchangeConnectScreen extends StatelessWidget {
   const ExchangeConnectScreen({super.key});
@@ -8,6 +9,15 @@ class ExchangeConnectScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = const Color(0xFF4B39EF);
+    final List<String> exchanges = [
+      'Bybit',
+      'MEXC',
+      'Bitget',
+      'HTX',
+      'KuCoin',
+      'Gate.io'
+    ];
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -16,20 +26,18 @@ class ExchangeConnectScreen extends StatelessWidget {
           icon: Icon(Icons.arrow_back_rounded, color: primary, size: 30),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text('Подключите биржу', style: GoogleFonts.lato(color: primary, fontWeight: FontWeight.w800, fontSize: 22)),
+        title: Text('Подключите биржу', style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
         centerTitle: true,
       ),
       backgroundColor: Colors.white,
-      body: Padding(
+      body: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-        child: Column(
-          children: [
-            _ExchangeButton(exchangeName: 'Bybit'),
-            const SizedBox(height: 16),
-            // TODO: Add other exchanges like Binance later
-            // _ExchangeButton(exchangeName: 'Binance'),
-          ],
-        ),
+        itemCount: exchanges.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 16),
+        itemBuilder: (context, index) {
+          final exchangeName = exchanges[index];
+          return _ExchangeButton(exchangeName: exchangeName);
+        },
       ),
     );
   }
@@ -49,7 +57,14 @@ class _ExchangeButton extends StatelessWidget {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => BybitAddScreen(platformName: exchangeName)),
+            MaterialPageRoute(
+              builder: (_) => ExchangeInfoScreen(
+                exchangeName: exchangeName,
+                // For now, all exchanges will lead to BybitAddScreen after the info screen.
+                // Later, we can create specific screens for each exchange.
+                connectionScreen: BybitAddScreen(platformName: exchangeName),
+              ),
+            ),
           );
         },
         style: ElevatedButton.styleFrom(
@@ -63,7 +78,7 @@ class _ExchangeButton extends StatelessWidget {
         ),
         child: Text(
           exchangeName,
-          style: GoogleFonts.lato(
+          style: GoogleFonts.outfit(
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),

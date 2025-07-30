@@ -79,13 +79,12 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'uid': user.uid,
         'email': user.email,
-        'name': _nameController.text.trim(),
+        'full_name': _nameController.text.trim(),
         'profile_picture_base64': imageBase64,
         'createdAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('last_route', '/subscription');
+
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

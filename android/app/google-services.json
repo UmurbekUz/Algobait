@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "232565114032",
-    "project_id": "algobait-beta25",
-    "storage_bucket": "algobait-beta25.firebasestorage.app"
+    "project_number": "905788187928",
+    "project_id": "algobait-official",
+    "storage_bucket": "algobait-official.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:232565114032:android:55ae7f268458e13164a775",
+        "mobilesdk_app_id": "1:905788187928:android:16325d9e59cdd0cfa82a6d",
         "android_client_info": {
           "package_name": "com.example.algobait"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAlajqLkTb7D8YQPYbZ0vyLWq5um0pGb3g"
+          "current_key": "AIzaSyAV2C9AiDg-NDIcGs1eST47feAG1qFAJbY"
         }
       ],
       "services": {

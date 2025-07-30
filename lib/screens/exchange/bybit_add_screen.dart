@@ -1,39 +1,115 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../platform/platform_connect_screen.dart';
-import '../questionnaire/questionnaire_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:algobait/services/exchange_auth_service.dart';
+import 'exchange_webview_screen.dart';
+import 'package:algobait/screens/platform/platform_connect_screen.dart';
 
 class BybitAddScreen extends StatefulWidget {
   final String platformName;
 
-  const BybitAddScreen({super.key, required this.platformName});
+  const BybitAddScreen({Key? key, required this.platformName}) : super(key: key);
 
   @override
   State<BybitAddScreen> createState() => _BybitAddScreenState();
 }
 
-class _BybitAddScreenState extends State<BybitAddScreen>
-    with SingleTickerProviderStateMixin {
+class _BybitAddScreenState extends State<BybitAddScreen> {
+  final ExchangeAuthService _authService = ExchangeAuthService();
   bool _isLoading = false;
-  late TabController _tabController;
-  final _nameController = TextEditingController();
-  final _apiKeyController = TextEditingController();
-  final _secretKeyController = TextEditingController();
+  void _startConnectionProcess() async {
+    final platform = widget.platformName.toLowerCase();
+    final String? clientId = dotenv.env['${platform.toUpperCase()}_API_KEY'];
+    const String redirectUri = 'https://algobait.com/oauth/callback';
+    
+    if (clientId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка: Ключ API для $platform не настроен в .env файле.')),
+      );
+      return;
+    }
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
+    // NOTE: These URLs are examples and must be verified with official documentation.
+    final Map<String, String> authUrlTemplates = {
+      'bybit': 'https://www.bybit.com/v5/oauth/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_URI}&scope=read_write',
+      'mexc': 'https://www.mexc.com/open/api/v2/oauth/authorize?client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&response_type=code&scope=spot:read,spot:write',
+      'gate.io': 'https://www.gate.io/oauth2/authorize?client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&response_type=code&scope=perpetual_account_read,spot_account_read',
+      'kucoin': 'https://www.kucoin.com/oauth/authorize?client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&response_type=code&scope=read_write',
+      'htx': 'https://www.htx.com/oauth/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_URI}&scope=read_write',
+      'bitget': 'https://www.bitget.com/oauth/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_URI}&scope=read_write',
+    };
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _nameController.dispose();
-    _apiKeyController.dispose();
-    _secretKeyController.dispose();
-    super.dispose();
+    final urlTemplate = authUrlTemplates[platform];
+
+    if (urlTemplate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Процесс подключения для $platform еще не поддерживается.')),
+      );
+      return;
+    }
+
+    final authUrl = urlTemplate
+        .replaceAll('{CLIENT_ID}', clientId)
+        .replaceAll('{REDIRECT_URI}', redirectUri);
+
+    print('Navigating to: $authUrl');
+
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ExchangeWebViewScreen(initialUrl: authUrl),
+      ),
+    );
+
+    if (result != null && result is String) {
+      final String code = result;
+      print('Received authorization code: $code');
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      final bool success = await _authService.exchangeCodeForToken(widget.platformName, code);
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (success) {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          String fieldName = '${widget.platformName.toLowerCase().replaceAll(' ', '_').replaceAll('.io', 'io')}_connected';
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+            fieldName: true,
+          }, SetOptions(merge: true));
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${widget.platformName} успешно подключен!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const PlatformConnectScreen()),
+            (route) => route.isFirst,
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Не удалось подключить ${widget.platformName}. Попробуйте снова.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } else {
+      print('Connection process was cancelled or failed.');
+    }
   }
 
   @override
@@ -43,199 +119,73 @@ class _BybitAddScreenState extends State<BybitAddScreen>
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 0,
+        elevation: 1,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: primaryColor),
+          icon: Icon(Icons.arrow_back_rounded, color: Colors.black, size: 30),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Добавить ${widget.platformName}',
-          style: GoogleFonts.lato(
-            color: primaryColor,
-            fontWeight: FontWeight.w800,
+          'Подключить ${widget.platformName}',
+          style: GoogleFonts.outfit(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
             fontSize: 22,
           ),
         ),
         centerTitle: true,
       ),
       backgroundColor: Colors.white,
-      body: SafeArea(
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Container(
-                height: 45,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(25.0),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  indicator: BoxDecoration(
-                    borderRadius: BorderRadius.circular(25.0),
-                    color: primaryColor,
-                    border: Border.all(color: primaryColor, width: 3),
-                  ),
-                  labelColor: Colors.white,
-                  unselectedLabelColor: primaryColor,
-                  labelStyle: GoogleFonts.readexPro(fontWeight: FontWeight.w600),
-                  unselectedLabelStyle: GoogleFonts.readexPro(fontWeight: FontWeight.w600),
-                  tabs: const [
-                    Tab(text: 'Быстрое подключение'),
-                    Tab(text: 'API ключи'),
-                  ],
-                ),
+            const Spacer(),
+            Icon(Icons.sync_lock_rounded, color: primaryColor, size: 80),
+            const SizedBox(height: 24),
+            Text(
+              'Безопасное подключение',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.outfit(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildQuickConnectTab(primaryColor),
-                  _buildApiKeysTab(primaryColor),
-                ],
+            const SizedBox(height: 12),
+            Text(
+              'Вы будете перенаправлены на официальную страницу ${widget.platformName} для входа в свой аккаунт и предоставления нашему приложению необходимых разрешений. Мы не получаем доступ к вашим логину и паролю.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.outfit(
+                fontSize: 16,
+                color: Colors.black54,
+                height: 1.5,
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 15, 15),
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                onPressed: () async {
-                  setState(() {
-                    _isLoading = true;
-                  });
-                  try {
-                    // If we are connecting an exchange (like Bybit), save the next step and go to platform selection
-                    if (widget.platformName == 'Bybit') {
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.setString('last_route', '/platform-connect');
-                      if (mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const PlatformConnectScreen()),
-                        );
-                      }
-                    } else {
-                      // If we are connecting a platform (like 3Commas), go to the questionnaire
-                      // TODO: Implement actual connection logic here
-                      if (mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const QuestionnaireScreen()),
-                        );
-                      }
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Ошибка: ${e.toString()}')),
-                      );
-                    }
-                  } finally {
-                    if (mounted) {
-                      setState(() {
-                        _isLoading = false;
-                      });
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  minimumSize: const Size(double.infinity, 56),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 5,
+            const Spacer(),
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ElevatedButton(
+              onPressed: _startConnectionProcess,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  'Подключить',
-                  style: GoogleFonts.readexPro(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                elevation: 0,
+              ),
+              child: Text(
+                'Подключить через ${widget.platformName}',
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildQuickConnectTab(Color primaryColor) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(height: 40),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // TODO: Replace with actual logos
-              Icon(Icons.business, size: 50, color: primaryColor),
-              const SizedBox(width: 20),
-              Icon(Icons.link, size: 40, color: Colors.grey[600]),
-              const SizedBox(width: 20),
-              Icon(Icons.shield, size: 50, color: Colors.green),
-            ],
-          ),
-          const SizedBox(height: 30),
-          Text(
-            'Быстрое подключение',
-            style: GoogleFonts.readexPro(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Прямое соединение с биржей - самое безопасное и быстрое. Никто не сможет получить к вашим API-ключам.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.readexPro(fontSize: 16, color: Colors.grey[600]),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildApiKeysTab(Color primaryColor) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        children: [
-          TextFormField(
-            controller: _nameController,
-            decoration: _inputDecoration('Название', primaryColor),
-          ),
-          const SizedBox(height: 20),
-          TextFormField(
-            controller: _apiKeyController,
-            decoration: _inputDecoration('API ключ', primaryColor),
-          ),
-          const SizedBox(height: 20),
-          TextFormField(
-            controller: _secretKeyController,
-            obscureText: true,
-            decoration: _inputDecoration('Secret-ключ', primaryColor),
-          ),
-        ],
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration(String label, Color primaryColor) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: GoogleFonts.roboto(color: primaryColor),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: primaryColor.withOpacity(0.5)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: primaryColor, width: 2),
       ),
     );
   }

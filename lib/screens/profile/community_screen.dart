@@ -41,46 +41,49 @@ class CommunityScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 20.0),
         children: [
           _buildCommunityTile(
-            icon: FontAwesomeIcons.twitter,
-            text: 'Twitter',
-            onTap: () => _launchURL('https://twitter.com/'), // TODO: Replace with actual URL
-          ),
-          _buildCommunityTile(
-            icon: FontAwesomeIcons.telegram,
-            text: 'Телеграм канал',
-            onTap: () => _launchURL('https://t.me/'), // TODO: Replace with actual URL
-          ),
-          _buildCommunityTile(
             icon: FontAwesomeIcons.discord,
             text: 'Discord',
-            onTap: () => _launchURL('https://discord.com/'), // TODO: Replace with actual URL
+            onTap: () => _launchURL('https://discord.gg/ZUGcpcmW'),
           ),
           _buildCommunityTile(
             icon: FontAwesomeIcons.youtube,
             text: 'YouTube',
-            onTap: () => _launchURL('https://youtube.com/'), // TODO: Replace with actual URL
+            onTap: () => _launchURL('https://youtube.com/@algobait?si=bk0GIvnOhn3gSzYH'),
+          ),
+          _buildCommunityTile(
+            icon: FontAwesomeIcons.telegram,
+            text: 'Телеграм канал',
+            onTap: () => _launchURL('https://t.me/Algobait'),
+            fontWeight: FontWeight.bold,
+          ),
+          _buildCommunityTile(
+            icon: FontAwesomeIcons.xTwitter,
+            text: 'X (Twitter)',
+            onTap: () => _launchURL('https://x.com/algobait?s=21'),
           ),
           const Divider(height: 30, indent: 20, endIndent: 20),
           _buildCommunityTile(
             icon: Icons.share_outlined,
             text: 'Поделиться приложением',
             onTap: () {
-              Share.share('Check out this cool app! https://example.com'); // TODO: Replace with app link
+              Share.share('https://algobait.tilda.ws/');
             },
+            fontWeight: FontWeight.bold,
           ),
           _buildCommunityTile(
             icon: Icons.thumb_up_alt_outlined,
             text: 'Обратная связь',
             onTap: () {
-               _launchURL('mailto:support@example.com?subject=App Feedback'); // TODO: Replace with support email
+               _launchURL('https://t.me/IvanEffimov');
             },
+            fontWeight: FontWeight.bold,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCommunityTile({required IconData icon, required String text, required VoidCallback onTap}) {
+  Widget _buildCommunityTile({required IconData icon, required String text, required VoidCallback onTap, FontWeight fontWeight = FontWeight.w500}) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       leading: FaIcon(icon, color: const Color(0xFF4B39EF), size: 24),
@@ -88,7 +91,7 @@ class CommunityScreen extends StatelessWidget {
         text,
         style: GoogleFonts.outfit(
           fontSize: 18,
-          fontWeight: FontWeight.w500,
+          fontWeight: fontWeight,
         ),
       ),
       onTap: onTap,

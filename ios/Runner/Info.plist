@@ -51,5 +51,7 @@
 	<string>Это приложение требует доступ к вашей камере для съемки фото профиля.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Это приложение требует доступ к вашему микрофону для записи видео с аудио.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Используется для быстрого и безопасного входа в приложение с помощью Face ID.</string>
 </dict>
 </plist>
