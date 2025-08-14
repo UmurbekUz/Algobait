@@ -1,33 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../exchange/bybit_add_screen.dart';
+import 'platform_add_screen.dart';
 
 class PlatformConnectScreen extends StatelessWidget {
-  const PlatformConnectScreen({super.key});
+  final List<String> connectedPlatforms;
+  const PlatformConnectScreen({super.key, this.connectedPlatforms = const []});
 
   @override
   Widget build(BuildContext context) {
     final primary = const Color(0xFF4B39EF);
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: primary, size: 30),
-          onPressed: () => Navigator.of(context).pop(),
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          title: Text('Подключите платформу', style: GoogleFonts.lato(color: primary, fontWeight: FontWeight.w800, fontSize: 22)),
+          centerTitle: true,
         ),
-        title: Text('Подключите платформу', style: GoogleFonts.lato(color: primary, fontWeight: FontWeight.w800, fontSize: 22)),
-        centerTitle: true,
-      ),
-      backgroundColor: Colors.white,
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-        child: Column(
-          children: [
-            _PlatformButton(platformName: '3Commas'),
-            const SizedBox(height: 16),
-            _PlatformButton(platformName: 'Fatty.io'),
-          ],
+        backgroundColor: Colors.white,
+        body: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+          child: Column(
+            children: [
+              if (!connectedPlatforms.contains('3Commas')) ...[
+                _PlatformButton(platformName: '3Commas', connected: connectedPlatforms),
+                const SizedBox(height: 16),
+              ],
+              
+            ],
+          ),
         ),
       ),
     );
@@ -36,8 +39,9 @@ class PlatformConnectScreen extends StatelessWidget {
 
 class _PlatformButton extends StatelessWidget {
   final String platformName;
+  final List<String> connected;
 
-  const _PlatformButton({required this.platformName});
+  const _PlatformButton({required this.platformName, required this.connected});
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +52,7 @@ class _PlatformButton extends StatelessWidget {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => BybitAddScreen(platformName: platformName)),
+            MaterialPageRoute(builder: (_) => PlatformAddScreen(platformName: platformName, connectedPlatforms: connected)),
           );
         },
         style: ElevatedButton.styleFrom(

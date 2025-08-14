@@ -4,20 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:algobait/screens/portfolio/investment_portfolio_screen.dart';
 
-// Placeholder for the main screen of the app
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Text('Главный экран'),
-      ),
-    );
-  }
-}
-
 
 class QuestionnaireScreen extends StatefulWidget {
   const QuestionnaireScreen({super.key});
@@ -31,6 +17,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
   final Map<String, dynamic> _answers = {};
   int _currentPage = 0;
   bool _isLoading = false;
+  final _formKey = GlobalKey<FormState>();
 
   final List<Map<String, dynamic>> _questions = [
     {
@@ -156,7 +143,9 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
           },
         ),
       ),
-      body: Column(
+      body: Form(
+        key: _formKey,
+        child: Column(
         children: [
           Expanded(
             child: PageView.builder(
@@ -182,7 +171,24 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
             child: _isLoading 
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
-              onPressed: (_answers[_questions[_currentPage]['key']] == null || _answers[_questions[_currentPage]['key']] == '') ? null : _nextPage,
+              onPressed: () {
+                bool canProceed = false;
+                // For input questions, validate the form.
+                if (_questions[_currentPage]['type'] == 'input') {
+                  if (_formKey.currentState?.validate() ?? false) {
+                    canProceed = true;
+                  }
+                } else {
+                  // For choice questions, just check if an answer is selected.
+                  if (_answers[_questions[_currentPage]['key']] != null) {
+                    canProceed = true;
+                  }
+                }
+
+                if (canProceed) {
+                  _nextPage();
+                }
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,
                 minimumSize: const Size(double.infinity, 50),
@@ -201,7 +207,8 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildInputQuestion(Map<String, dynamic> question, Color primaryColor) {
@@ -216,11 +223,25 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
           ),
           const SizedBox(height: 30),
           TextFormField(
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             onChanged: (value) {
               setState(() {
                 _answers[question['key']] = value;
               });
+            },
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Пожалуйста, введите сумму.';
+              }
+              final n = num.tryParse(value.replaceAll(',', '.'));
+              if (n == null) {
+                return 'Пожалуйста, введите корректное число.';
+              }
+              if (n < 10) {
+                return 'Минимальный бюджет - \$10.';
+              }
+              return null;
             },
             decoration: InputDecoration(
               hintText: 'Введите сумму в USD',

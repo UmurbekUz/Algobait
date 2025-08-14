@@ -45,11 +45,5 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Это приложение требует доступ к вашей галерее для выбора фото профиля.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>Это приложение требует доступ к вашей камере для съемки фото профиля.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Это приложение требует доступ к вашему микрофону для записи видео с аудио.</string>
 </dict>
 </plist>
