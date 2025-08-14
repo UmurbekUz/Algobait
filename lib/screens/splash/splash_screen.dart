@@ -21,7 +21,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _initializeAppAndNavigate() async {
     // Perform all necessary initializations here
     try {
-      await dotenv.load(fileName: ".env");
+      await dotenv.load(fileName: "config.env");
       await Firebase.initializeApp();
     } catch (e) {
       print('Error during initialization: $e');
